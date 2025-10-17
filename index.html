@@ -79,9 +79,15 @@
             const form = document.querySelector("#github-user-abc123");
             const usernameInput = document.getElementById("usernameInput");
             const createdAtDisplay = document.getElementById("github-created-at");
-            const accountAgeDisplay = document.getElementById("github-account-age"); // NEW: Get reference to account age div
+            const accountAgeDisplay = document.getElementById("github-account-age");
             const errorMessageDiv = document.getElementById("errorMessage");
             const githubStatusDiv = document.getElementById("github-status");
+
+            // Load username from localStorage on page load
+            const cachedUsername = localStorage.getItem("github-user-abc123");
+            if (cachedUsername) {
+                usernameInput.value = cachedUsername;
+            }
 
             function displayError(message) {
                 errorMessageDiv.textContent = message;
@@ -116,8 +122,8 @@
                 clearStatus();
                 createdAtDisplay.textContent = "Fetching...";
                 createdAtDisplay.style.color = '#6c757d';
-                accountAgeDisplay.textContent = "-- years"; // Reset age display
-                accountAgeDisplay.style.color = '#6c757d'; // Reset age display color
+                accountAgeDisplay.textContent = "-- years";
+                accountAgeDisplay.style.color = '#6c757d';
 
                 updateStatus("Fetching user data...");
 
@@ -163,7 +169,7 @@
                         updateStatus("Lookup failed: " + errorMsg, true);
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
-                        accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                        accountAgeDisplay.textContent = "-- years";
                         accountAgeDisplay.style.color = '#6c757d';
                         return;
                     }
@@ -187,12 +193,16 @@
                         accountAgeDisplay.style.color = '#6c757d';
 
                         updateStatus("User data fetched successfully.");
+                        
+                        // Cache the username on successful lookup
+                        localStorage.setItem("github-user-abc123", username);
+
                     } else {
                         displayError("Creation date not found for this user.");
                         updateStatus("Lookup failed: Creation date not found.", true);
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
-                        accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                        accountAgeDisplay.textContent = "-- years";
                         accountAgeDisplay.style.color = '#6c757d';
                     }
 
@@ -202,7 +212,7 @@
                     updateStatus("Lookup failed: A network error occurred.", true);
                     createdAtDisplay.textContent = "--/--/----";
                     createdAtDisplay.style.color = '#007bff';
-                    accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                    accountAgeDisplay.textContent = "-- years";
                     accountAgeDisplay.style.color = '#6c757d';
                 }
             });
