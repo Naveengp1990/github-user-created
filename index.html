@@ -56,6 +56,11 @@
         <div id="errorMessage" class="alert alert-danger d-none" role="alert">
             <!-- Error messages will be displayed here -->
         </div>
+
+        <!-- NEW: Aria-live status alert -->
+        <div id="github-status" class="alert alert-info d-none" role="status" aria-live="polite">
+            <!-- Status messages will be displayed here for screen readers and visually -->
+        </div>
     </div>
 
     <script>
@@ -64,6 +69,7 @@
             const usernameInput = document.getElementById("usernameInput");
             const createdAtDisplay = document.getElementById("github-created-at");
             const errorMessageDiv = document.getElementById("errorMessage");
+            const githubStatusDiv = document.getElementById("github-status"); // New: Get reference to github-status div
 
             function displayError(message) {
                 errorMessageDiv.textContent = message;
@@ -75,15 +81,38 @@
                 errorMessageDiv.classList.add("d-none");
             }
 
+            // New: Function to update the github-status div for aria-live announcements and visual feedback
+            function updateStatus(message, isError = false) {
+                githubStatusDiv.textContent = message;
+                githubStatusDiv.classList.remove("d-none");
+                if (isError) {
+                    githubStatusDiv.classList.remove("alert-info");
+                    githubStatusDiv.classList.add("alert-danger");
+                } else {
+                    githubStatusDiv.classList.remove("alert-danger");
+                    githubStatusDiv.classList.add("alert-info");
+                }
+            }
+
+            // New: Function to clear the github-status div
+            function clearStatus() {
+                githubStatusDiv.textContent = "";
+                githubStatusDiv.classList.add("d-none");
+            }
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 clearError();
+                clearStatus(); // Clear previous status messages
                 createdAtDisplay.textContent = "Fetching...";
                 createdAtDisplay.style.color = '#6c757d'; // Temporarily change color to indicate loading
+
+                updateStatus("Fetching user data..."); // Report lookup start for screen readers
 
                 const username = usernameInput.value.trim();
                 if (!username) {
                     displayError("Please enter a GitHub username.");
+                    updateStatus("Lookup failed: Please enter a GitHub username.", true); // Report lookup failure
                     createdAtDisplay.textContent = "--/--/----";
                     createdAtDisplay.style.color = '#007bff';
                     return;
@@ -118,6 +147,7 @@
                             }
                         }
                         displayError(errorMsg);
+                        updateStatus("Lookup failed: " + errorMsg, true); // Report lookup failure
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
                         return;
@@ -129,8 +159,10 @@
                         // Format to YYYY-MM-DD UTC
                         createdAtDisplay.textContent = date.toISOString().split('T')[0];
                         createdAtDisplay.style.color = '#007bff';
+                        updateStatus("User data fetched successfully."); // Report lookup success
                     } else {
                         displayError("Creation date not found for this user.");
+                        updateStatus("Lookup failed: Creation date not found.", true); // Report lookup failure
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
                     }
@@ -138,6 +170,7 @@
                 } catch (error) {
                     console.error("Network or parsing error:", error);
                     displayError("A network error occurred. Please check your connection.");
+                    updateStatus("Lookup failed: A network error occurred.", true); // Report lookup failure
                     createdAtDisplay.textContent = "--/--/----";
                     createdAtDisplay.style.color = '#007bff';
                 }
