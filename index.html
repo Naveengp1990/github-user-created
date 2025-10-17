@@ -26,6 +26,13 @@
             margin-top: 15px;
             display: block; /* Ensure it takes full width */
         }
+        #github-account-age { /* NEW: Style for account age */
+            font-weight: 600;
+            color: #6c757d; /* Muted color for age */
+            font-size: 1.75rem; /* Slightly smaller than creation date */
+            margin-top: 10px;
+            display: block;
+        }
         .alert {
             margin-top: 20px;
         }
@@ -51,6 +58,10 @@
         <div id="result-area" class="text-center">
             <p class="mb-2 lead">Account creation date:</p>
             <span id="github-created-at">--/--/----</span>
+
+            <!-- NEW: Element to display account age -->
+            <p class="mb-2 lead mt-4">Account age:</p>
+            <span id="github-account-age">-- years</span>
         </div>
 
         <div id="errorMessage" class="alert alert-danger d-none" role="alert">
@@ -68,8 +79,9 @@
             const form = document.querySelector("#github-user-abc123");
             const usernameInput = document.getElementById("usernameInput");
             const createdAtDisplay = document.getElementById("github-created-at");
+            const accountAgeDisplay = document.getElementById("github-account-age"); // NEW: Get reference to account age div
             const errorMessageDiv = document.getElementById("errorMessage");
-            const githubStatusDiv = document.getElementById("github-status"); // New: Get reference to github-status div
+            const githubStatusDiv = document.getElementById("github-status");
 
             function displayError(message) {
                 errorMessageDiv.textContent = message;
@@ -81,7 +93,6 @@
                 errorMessageDiv.classList.add("d-none");
             }
 
-            // New: Function to update the github-status div for aria-live announcements and visual feedback
             function updateStatus(message, isError = false) {
                 githubStatusDiv.textContent = message;
                 githubStatusDiv.classList.remove("d-none");
@@ -94,7 +105,6 @@
                 }
             }
 
-            // New: Function to clear the github-status div
             function clearStatus() {
                 githubStatusDiv.textContent = "";
                 githubStatusDiv.classList.add("d-none");
@@ -103,25 +113,28 @@
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 clearError();
-                clearStatus(); // Clear previous status messages
+                clearStatus();
                 createdAtDisplay.textContent = "Fetching...";
-                createdAtDisplay.style.color = '#6c757d'; // Temporarily change color to indicate loading
+                createdAtDisplay.style.color = '#6c757d';
+                accountAgeDisplay.textContent = "-- years"; // Reset age display
+                accountAgeDisplay.style.color = '#6c757d'; // Reset age display color
 
-                updateStatus("Fetching user data..."); // Report lookup start for screen readers
+                updateStatus("Fetching user data...");
 
                 const username = usernameInput.value.trim();
                 if (!username) {
                     displayError("Please enter a GitHub username.");
-                    updateStatus("Lookup failed: Please enter a GitHub username.", true); // Report lookup failure
+                    updateStatus("Lookup failed: Please enter a GitHub username.", true);
                     createdAtDisplay.textContent = "--/--/----";
                     createdAtDisplay.style.color = '#007bff';
+                    accountAgeDisplay.textContent = "-- years";
+                    accountAgeDisplay.style.color = '#6c757d';
                     return;
                 }
 
                 const apiUrl = `https://api.github.com/users/${username}`;
                 const headers = new Headers();
 
-                // Check for ?token= in URL parameters
                 const urlParams = new URLSearchParams(window.location.search);
                 const token = urlParams.get('token');
 
@@ -147,32 +160,50 @@
                             }
                         }
                         displayError(errorMsg);
-                        updateStatus("Lookup failed: " + errorMsg, true); // Report lookup failure
+                        updateStatus("Lookup failed: " + errorMsg, true);
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
+                        accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                        accountAgeDisplay.style.color = '#6c757d';
                         return;
                     }
 
                     const data = await response.json();
                     if (data.created_at) {
-                        const date = new Date(data.created_at);
-                        // Format to YYYY-MM-DD UTC
-                        createdAtDisplay.textContent = date.toISOString().split('T')[0];
+                        const creationDate = new Date(data.created_at);
+                        // Format to YYYY-MM-DD
+                        createdAtDisplay.textContent = creationDate.toISOString().split('T')[0];
                         createdAtDisplay.style.color = '#007bff';
-                        updateStatus("User data fetched successfully."); // Report lookup success
+
+                        // Calculate account age in whole years
+                        const today = new Date();
+                        let ageInYears = today.getFullYear() - creationDate.getFullYear();
+                        const m = today.getMonth() - creationDate.getMonth();
+                        if (m < 0 || (m === 0 && today.getDate() < creationDate.getDate())) {
+                            ageInYears--;
+                        }
+                        // Ensure age is not negative (e.g., if creation date is in future, though unlikely for GitHub)
+                        accountAgeDisplay.textContent = `${Math.max(0, ageInYears)} years`;
+                        accountAgeDisplay.style.color = '#6c757d';
+
+                        updateStatus("User data fetched successfully.");
                     } else {
                         displayError("Creation date not found for this user.");
-                        updateStatus("Lookup failed: Creation date not found.", true); // Report lookup failure
+                        updateStatus("Lookup failed: Creation date not found.", true);
                         createdAtDisplay.textContent = "--/--/----";
                         createdAtDisplay.style.color = '#007bff';
+                        accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                        accountAgeDisplay.style.color = '#6c757d';
                     }
 
                 } catch (error) {
                     console.error("Network or parsing error:", error);
                     displayError("A network error occurred. Please check your connection.");
-                    updateStatus("Lookup failed: A network error occurred.", true); // Report lookup failure
+                    updateStatus("Lookup failed: A network error occurred.", true);
                     createdAtDisplay.textContent = "--/--/----";
                     createdAtDisplay.style.color = '#007bff';
+                    accountAgeDisplay.textContent = "-- years"; // Reset age on error
+                    accountAgeDisplay.style.color = '#6c757d';
                 }
             });
         });
